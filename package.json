@@ -3,13 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:db": "tsx scripts/test-db.ts",
+    "test:ai": "tsx scripts/test-ai.ts",
+    "test:scrapers": "tsx scripts/test-scrapers.ts",
+    "test:all": "tsx scripts/test-all.ts",
+    "seed:user": "tsx scripts/seed-user.ts",
+    "launch:campaign": "tsx scripts/launch-test-campaign.ts",
+    "tunnel": "tsx scripts/tunnel.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.13.0",
+    "apify-client": "^2.23.4",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "framer-motion": "^12.42.2",
+    "inngest": "^4.13.0",
+    "lucide-react": "^1.25.0",
+    "mongoose": "^9.8.0",
     "next": "16.2.11",
+    "next-auth": "^4.24.15",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -21,6 +37,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }

@@ -1,7 +1,14 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ['mongoose'],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'media.licdn.com' },
+      { protocol: 'https', hostname: 'www.dice.com' },
+      { protocol: 'https', hostname: 'www.upwork.com' },
+    ],
+  },
 };
 
 export default nextConfig;
