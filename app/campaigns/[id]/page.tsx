@@ -71,7 +71,7 @@ export default function CampaignDetailPage() {
 
   const { campaign, jobs, stats, pagination } = data;
   const src = SOURCE_CONFIG[campaign.source] || SOURCE_CONFIG.dice;
-  const isActive = !['COMPLETED', 'FAILED'].includes(campaign.status);
+  const isProcessing = ['SCRAPING', 'EVALUATING'].includes(campaign.status);
   const evalProgress = stats.globalTotalJobs > 0 ? Math.round((stats.evaluatedJobs / stats.globalTotalJobs) * 100) : 0;
 
   return (
@@ -86,7 +86,7 @@ export default function CampaignDetailPage() {
           <div className="flex items-center gap-3 mb-2">
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${src.bg} ${src.color}`}>{src.label}</span>
             <span className={`text-sm font-medium flex items-center gap-1.5 ${STATUS_COLORS[campaign.status]}`}>
-              {isActive && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {isProcessing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {campaign.status}
             </span>
           </div>
@@ -157,7 +157,7 @@ export default function CampaignDetailPage() {
       <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
         {jobs.length === 0 ? (
           <div className="py-16 text-center">
-            {isActive
+            {isProcessing
               ? <div className="flex flex-col items-center gap-3"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /><p className="text-neutral-400 text-sm">Collecting jobs... this may take a few minutes</p></div>
               : <p className="text-neutral-500 text-sm">No jobs found for this filter.</p>
             }

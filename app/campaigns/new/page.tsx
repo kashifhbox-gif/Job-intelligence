@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Plus, X } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import DiceForm from '@/components/campaigns/DiceForm';
+import UpworkForm from '@/components/campaigns/UpworkForm';
+import FreelancerForm from '@/components/campaigns/FreelancerForm';
+import LinkedInForm from '@/components/campaigns/LinkedInForm';
 
 type Source = 'dice' | 'upwork' | 'freelancer' | 'linkedin';
 
@@ -20,16 +24,16 @@ export default function NewCampaignPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Shared fields
+  // Shared
   const [name, setName] = useState('');
   const [keyword, setKeyword] = useState('');
 
-  // Dice
+  // Dice state
   const [diceLocation, setDiceLocation] = useState('Remote');
   const [dicePostedDate, setDicePostedDate] = useState('24h');
   const [diceResultsWanted, setDiceResultsWanted] = useState(20);
 
-  // Upwork
+  // Upwork state
   const [upworkJobType, setUpworkJobType] = useState('');
   const [upworkExperience, setUpworkExperience] = useState('');
   const [upworkBudgetMin, setUpworkBudgetMin] = useState('');
@@ -38,26 +42,49 @@ export default function NewCampaignPage() {
   const [upworkHourlyMax, setUpworkHourlyMax] = useState('');
   const [upworkMaxResults, setUpworkMaxResults] = useState(50);
 
-  // Freelancer
-  const [flSkillInput, setFlSkillInput] = useState('');
+  // Freelancer state
   const [flSkills, setFlSkills] = useState<string[]>([]);
   const [flBudgetMin, setFlBudgetMin] = useState('');
   const [flBudgetMax, setFlBudgetMax] = useState('');
   const [flSort, setFlSort] = useState('date_desc');
   const [flLimit, setFlLimit] = useState(100);
 
-  // LinkedIn
+  // LinkedIn state
+  const [liMode, setLiMode] = useState<'builder' | 'custom'>('builder');
+  const [liKeyword, setLiKeyword] = useState('');
+  const [liLocation, setLiLocation] = useState('United States');
+  const [liWorkTypes, setLiWorkTypes] = useState<string[]>(['2']); // Remote by default
+  const [liDatePosted, setLiDatePosted] = useState('r86400'); // 24h by default
+  const [liExperienceLevels, setLiExperienceLevels] = useState<string[]>([]);
+  const [liJobTypes, setLiJobTypes] = useState<string[]>([]);
+  const [liCompanyIds, setLiCompanyIds] = useState('');
   const [liSearchUrl, setLiSearchUrl] = useState('');
-  const [liCount, setLiCount] = useState(100);
+  const [liCount, setLiCount] = useState(150);
   const [liScrapeCompany, setLiScrapeCompany] = useState(false);
   const [liSplitByLocation, setLiSplitByLocation] = useState(false);
 
-  const addSkill = () => {
-    const trimmed = flSkillInput.trim();
-    if (trimmed && !flSkills.includes(trimmed)) {
-      setFlSkills([...flSkills, trimmed]);
-      setFlSkillInput('');
+  const constructLinkedInUrl = () => {
+    const params = new URLSearchParams();
+    if (liKeyword.trim()) params.append('keywords', liKeyword.trim());
+    if (liLocation.trim()) params.append('location', liLocation.trim());
+
+    if (liLocation.trim().toLowerCase().includes('united states') || liLocation.trim().toLowerCase() === 'us') {
+      params.append('geoId', '103644278');
     }
+
+    if (liDatePosted) params.append('f_TPR', liDatePosted);
+    if (liWorkTypes.length > 0) params.append('f_WT', liWorkTypes.join(','));
+    if (liExperienceLevels.length > 0) params.append('f_E', liExperienceLevels.join(','));
+    if (liJobTypes.length > 0) params.append('f_JT', liJobTypes.join(','));
+    if (liCompanyIds.trim()) {
+      const cleanIds = liCompanyIds.split(',').map(c => c.trim()).filter(Boolean).join(',');
+      if (cleanIds) params.append('f_C', cleanIds);
+    }
+
+    params.append('position', '1');
+    params.append('pageNum', '0');
+
+    return `https://www.linkedin.com/jobs/search?${params.toString()}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,12 +92,32 @@ export default function NewCampaignPage() {
     setError('');
     if (!name.trim()) { setError('Campaign name is required'); return; }
     if (source !== 'linkedin' && !keyword.trim()) { setError('Keyword is required'); return; }
-    if (source === 'linkedin' && !liSearchUrl.trim()) { setError('LinkedIn search URL is required'); return; }
+
+    let finalLiUrl = '';
+    let finalKw = keyword;
+
+    if (source === 'linkedin') {
+      if (liMode === 'builder') {
+        if (!liKeyword.trim() && !liCompanyIds.trim()) {
+          setError('Please enter a job title/keyword or company ID for LinkedIn');
+          return;
+        }
+        finalLiUrl = constructLinkedInUrl();
+        finalKw = liKeyword.trim() ? `${liKeyword.trim()} (${liLocation})` : `LinkedIn Jobs (${liLocation})`;
+      } else {
+        if (!liSearchUrl.trim()) {
+          setError('LinkedIn search URL is required');
+          return;
+        }
+        finalLiUrl = liSearchUrl.trim();
+        finalKw = 'LinkedIn Custom URL Search';
+      }
+    }
 
     setSubmitting(true);
     try {
       const filters: any = {};
-      const kw = source === 'linkedin' ? (liSearchUrl || 'LinkedIn Jobs') : keyword;
+      const kw = source === 'linkedin' ? finalKw : keyword;
 
       if (source === 'dice') {
         filters.location = diceLocation;
@@ -91,7 +138,7 @@ export default function NewCampaignPage() {
         filters.sort = flSort;
         filters.limit = flLimit;
       } else if (source === 'linkedin') {
-        filters.searchUrl = liSearchUrl;
+        filters.searchUrl = finalLiUrl;
         filters.count = liCount;
         filters.scrapeCompany = liScrapeCompany;
         filters.splitByLocation = liSplitByLocation;
@@ -114,7 +161,6 @@ export default function NewCampaignPage() {
 
   const inputClass = "w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-indigo-500 transition-colors";
   const labelClass = "block text-xs text-neutral-400 mb-1";
-  const selectClass = "w-full px-3 py-2 bg-[#111] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors";
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
@@ -124,7 +170,7 @@ export default function NewCampaignPage() {
 
       <h1 className="text-2xl font-bold text-white mb-6">New Campaign</h1>
 
-      {/* Source selector */}
+      {/* Source Selector */}
       <div className="grid grid-cols-4 gap-2 mb-6">
         {SOURCES.map(s => (
           <button
@@ -132,7 +178,9 @@ export default function NewCampaignPage() {
             type="button"
             onClick={() => setSource(s.id)}
             className={`py-3 rounded-xl border text-sm font-medium transition-all ${
-              source === s.id ? `${s.activeClass} ${s.color}` : 'border-white/10 text-neutral-400 hover:border-white/20 hover:text-white'
+              source === s.id
+                ? `${s.activeClass} ${s.color}`
+                : 'border-white/10 text-neutral-400 hover:border-white/20 hover:text-white'
             }`}
           >
             {s.label}
@@ -141,171 +189,97 @@ export default function NewCampaignPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Shared: Campaign name */}
+        {/* Campaign Name (Shared) */}
         <div>
           <label className={labelClass}>Campaign Name *</label>
-          <input className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Remote React Jobs – July 2026" />
+          <input
+            className={inputClass}
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="e.g. Remote React Jobs – July 2026"
+          />
         </div>
 
-        {/* ── DICE ── */}
+        {/* Form Components */}
         {source === 'dice' && (
-          <>
-            <div>
-              <label className={labelClass}>Keyword *</label>
-              <input className={inputClass} value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="e.g. react developer" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Location</label>
-                <input className={inputClass} value={diceLocation} onChange={e => setDiceLocation(e.target.value)} placeholder="Remote" />
-              </div>
-              <div>
-                <label className={labelClass}>Posted Date</label>
-                <select className={selectClass} value={dicePostedDate} onChange={e => setDicePostedDate(e.target.value)}>
-                  <option value="24h">Last 24 hours</option>
-                  <option value="3d">Last 3 days</option>
-                  <option value="7d">Last 7 days</option>
-                  <option value="30d">Last 30 days</option>
-                  <option value="all">All time</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className={labelClass}>Results Wanted: {diceResultsWanted}</label>
-              <input type="range" min={10} max={250} step={10} value={diceResultsWanted} onChange={e => setDiceResultsWanted(Number(e.target.value))} className="w-full accent-orange-500" />
-            </div>
-          </>
+          <DiceForm
+            keyword={keyword}
+            setKeyword={setKeyword}
+            location={diceLocation}
+            setLocation={setDiceLocation}
+            postedDate={dicePostedDate}
+            setPostedDate={setDicePostedDate}
+            resultsWanted={diceResultsWanted}
+            setResultsWanted={setDiceResultsWanted}
+          />
         )}
 
-        {/* ── UPWORK ── */}
         {source === 'upwork' && (
-          <>
-            <div>
-              <label className={labelClass}>Search Query *</label>
-              <input className={inputClass} value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="e.g. next.js developer" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Job Type</label>
-                <select className={selectClass} value={upworkJobType} onChange={e => setUpworkJobType(e.target.value)}>
-                  <option value="">Any</option>
-                  <option value="HOURLY">Hourly</option>
-                  <option value="FIXED">Fixed</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Experience Level</label>
-                <select className={selectClass} value={upworkExperience} onChange={e => setUpworkExperience(e.target.value)}>
-                  <option value="">Any</option>
-                  <option value="EntryLevel">Entry Level</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="ExpertLevel">Expert</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Budget Min ($)</label>
-                <input type="number" className={inputClass} value={upworkBudgetMin} onChange={e => setUpworkBudgetMin(e.target.value)} placeholder="500" />
-              </div>
-              <div>
-                <label className={labelClass}>Budget Max ($)</label>
-                <input type="number" className={inputClass} value={upworkBudgetMax} onChange={e => setUpworkBudgetMax(e.target.value)} placeholder="5000" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Hourly Rate Min ($/hr)</label>
-                <input type="number" className={inputClass} value={upworkHourlyMin} onChange={e => setUpworkHourlyMin(e.target.value)} placeholder="25" />
-              </div>
-              <div>
-                <label className={labelClass}>Hourly Rate Max ($/hr)</label>
-                <input type="number" className={inputClass} value={upworkHourlyMax} onChange={e => setUpworkHourlyMax(e.target.value)} placeholder="150" />
-              </div>
-            </div>
-            <div>
-              <label className={labelClass}>Max Results: {upworkMaxResults}</label>
-              <input type="range" min={10} max={200} step={10} value={upworkMaxResults} onChange={e => setUpworkMaxResults(Number(e.target.value))} className="w-full accent-emerald-500" />
-            </div>
-          </>
+          <UpworkForm
+            keyword={keyword}
+            setKeyword={setKeyword}
+            jobType={upworkJobType}
+            setJobType={setUpworkJobType}
+            experience={upworkExperience}
+            setExperience={setUpworkExperience}
+            budgetMin={upworkBudgetMin}
+            setBudgetMin={setUpworkBudgetMin}
+            budgetMax={upworkBudgetMax}
+            setBudgetMax={setUpworkBudgetMax}
+            hourlyMin={upworkHourlyMin}
+            setHourlyMin={setUpworkHourlyMin}
+            hourlyMax={upworkHourlyMax}
+            setHourlyMax={setUpworkHourlyMax}
+            maxResults={upworkMaxResults}
+            setMaxResults={setUpworkMaxResults}
+          />
         )}
 
-        {/* ── FREELANCER ── */}
         {source === 'freelancer' && (
-          <>
-            <div>
-              <label className={labelClass}>Search Query *</label>
-              <input className={inputClass} value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="e.g. react node backend" />
-            </div>
-            <div>
-              <label className={labelClass}>Skills (optional)</label>
-              <div className="flex gap-2 mb-2">
-                <input className={inputClass} value={flSkillInput} onChange={e => setFlSkillInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); }}} placeholder="Type a skill and press Enter" />
-                <button type="button" onClick={addSkill} className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 transition-colors"><Plus className="w-4 h-4" /></button>
-              </div>
-              {flSkills.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {flSkills.map(s => (
-                    <span key={s} className="flex items-center gap-1 px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full text-xs">
-                      {s}
-                      <button type="button" onClick={() => setFlSkills(flSkills.filter(sk => sk !== s))}><X className="w-3 h-3" /></button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Budget Min ($)</label>
-                <input type="number" className={inputClass} value={flBudgetMin} onChange={e => setFlBudgetMin(e.target.value)} placeholder="500" />
-              </div>
-              <div>
-                <label className={labelClass}>Budget Max ($)</label>
-                <input type="number" className={inputClass} value={flBudgetMax} onChange={e => setFlBudgetMax(e.target.value)} placeholder="5000" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Sort By</label>
-                <select className={selectClass} value={flSort} onChange={e => setFlSort(e.target.value)}>
-                  <option value="date_desc">Newest first</option>
-                  <option value="price_desc">Highest budget</option>
-                  <option value="bid_asc">Least bids</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Limit: {flLimit}</label>
-                <input type="range" min={10} max={500} step={10} value={flLimit} onChange={e => setFlLimit(Number(e.target.value))} className="w-full mt-3 accent-blue-500" />
-              </div>
-            </div>
-          </>
+          <FreelancerForm
+            keyword={keyword}
+            setKeyword={setKeyword}
+            skills={flSkills}
+            setSkills={setFlSkills}
+            budgetMin={flBudgetMin}
+            setBudgetMin={setFlBudgetMin}
+            budgetMax={flBudgetMax}
+            setBudgetMax={setFlBudgetMax}
+            sort={flSort}
+            setSort={setFlSort}
+            limit={flLimit}
+            setLimit={setFlLimit}
+          />
         )}
 
-        {/* ── LINKEDIN JOBS ── */}
         {source === 'linkedin' && (
-          <>
-            <div className="p-3 bg-sky-500/5 border border-sky-500/20 rounded-lg text-xs text-sky-400">
-              💡 Go to <a href="https://www.linkedin.com/jobs/search" target="_blank" rel="noreferrer" className="underline">LinkedIn Jobs</a>, set your filters (role, location, date posted, remote, etc.), then copy the full URL from the address bar and paste it below.
-            </div>
-            <div>
-              <label className={labelClass}>LinkedIn Jobs Search URL *</label>
-              <input className={inputClass} value={liSearchUrl} onChange={e => setLiSearchUrl(e.target.value)} placeholder="https://www.linkedin.com/jobs/search/?keywords=react&location=Remote..." />
-            </div>
-            <div>
-              <label className={labelClass}>Max Jobs to Collect: {liCount}</label>
-              <input type="range" min={25} max={500} step={25} value={liCount} onChange={e => setLiCount(Number(e.target.value))} className="w-full accent-sky-500" />
-            </div>
-            <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 text-sm text-neutral-400 cursor-pointer">
-                <input type="checkbox" className="rounded" checked={liScrapeCompany} onChange={e => setLiScrapeCompany(e.target.checked)} />
-                Scrape company details (slower)
-              </label>
-              <label className="flex items-center gap-2 text-sm text-neutral-400 cursor-pointer">
-                <input type="checkbox" className="rounded" checked={liSplitByLocation} onChange={e => setLiSplitByLocation(e.target.checked)} />
-                Split by location (bypass 1000 limit)
-              </label>
-            </div>
-          </>
+          <LinkedInForm
+            mode={liMode}
+            setMode={setLiMode}
+            keyword={liKeyword}
+            setKeyword={setLiKeyword}
+            location={liLocation}
+            setLocation={setLiLocation}
+            workTypes={liWorkTypes}
+            setWorkTypes={setLiWorkTypes}
+            datePosted={liDatePosted}
+            setDatePosted={setLiDatePosted}
+            experienceLevels={liExperienceLevels}
+            setExperienceLevels={setLiExperienceLevels}
+            jobTypes={liJobTypes}
+            setJobTypes={setLiJobTypes}
+            companyIds={liCompanyIds}
+            setCompanyIds={setLiCompanyIds}
+            searchUrl={liSearchUrl}
+            setSearchUrl={setLiSearchUrl}
+            count={liCount}
+            setCount={setLiCount}
+            scrapeCompany={liScrapeCompany}
+            setScrapeCompany={setLiScrapeCompany}
+            splitByLocation={liSplitByLocation}
+            setSplitByLocation={setLiSplitByLocation}
+            constructedUrl={constructLinkedInUrl()}
+          />
         )}
 
         {error && (
@@ -315,7 +289,10 @@ export default function NewCampaignPage() {
         )}
 
         <div className="flex gap-3 pt-2">
-          <Link href="/campaigns" className="flex-1 py-2.5 border border-white/10 rounded-xl text-sm text-neutral-400 hover:text-white hover:bg-white/5 text-center transition-colors">
+          <Link
+            href="/campaigns"
+            className="flex-1 py-2.5 border border-white/10 rounded-xl text-sm text-neutral-400 hover:text-white hover:bg-white/5 text-center transition-colors"
+          >
             Cancel
           </Link>
           <button
@@ -323,7 +300,13 @@ export default function NewCampaignPage() {
             disabled={submitting}
             className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
-            {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting...</> : 'Launch Campaign'}
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Starting...
+              </>
+            ) : (
+              'Launch Campaign'
+            )}
           </button>
         </div>
       </form>

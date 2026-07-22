@@ -106,7 +106,7 @@ export default function CampaignsPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {campaigns.map((c) => {
                   const src = SOURCE_CONFIG[c.source] || SOURCE_CONFIG.dice;
-                  const isActive = !['COMPLETED', 'FAILED'].includes(c.status);
+                  const isProcessing = ['SCRAPING', 'EVALUATING'].includes(c.status);
                   return (
                     <tr
                       key={c._id}
@@ -126,7 +126,11 @@ export default function CampaignsPage() {
                       </td>
                       <td className="px-5 py-4">
                         <span className={`flex items-center gap-1.5 font-medium ${statusColor(c.status)}`}>
-                          {isActive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                          {isProcessing ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
                           {c.status}
                         </span>
                       </td>

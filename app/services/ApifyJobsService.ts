@@ -11,7 +11,7 @@ export class ApifyJobsService {
   private buildWebhookOption(webhookUrl: string) {
     if (webhookUrl && !webhookUrl.includes('localhost') && !webhookUrl.includes('127.0.0.1')) {
       return {
-        webhooks: [{ eventTypes: ['ACTOR.RUN.SUCCEEDED'], requestUrl: webhookUrl }],
+        webhooks: [{ eventTypes: ['ACTOR.RUN.SUCCEEDED' as const], requestUrl: webhookUrl }],
       };
     }
     return {};
