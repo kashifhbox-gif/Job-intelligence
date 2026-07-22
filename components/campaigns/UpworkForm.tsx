@@ -75,7 +75,7 @@ export default function UpworkForm({
           >
             <option value="">Any</option>
             <option value="EntryLevel">Entry Level</option>
-            <option value="Intermediate">Intermediate</option>
+            <option value="IntermediateLevel">Intermediate</option>
             <option value="ExpertLevel">Expert</option>
           </select>
         </div>

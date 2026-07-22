@@ -58,7 +58,9 @@ export default function JobDetailPage() {
           {job.postedAt && (
             <span className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
-              {new Date(job.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              {isNaN(new Date(job.postedAt).getTime()) 
+                ? String(job.postedAt)
+                : new Date(job.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
           )}
           {job.employmentType && <span>{job.employmentType}</span>}

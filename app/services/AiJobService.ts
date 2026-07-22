@@ -59,6 +59,9 @@ ${context}
     const response = await this.ai.models.generateContent({
       model: this.modelName,
       contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+      }
     });
 
     let resultText = response.text || '';

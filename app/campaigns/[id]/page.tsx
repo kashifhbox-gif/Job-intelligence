@@ -191,7 +191,11 @@ export default function CampaignDetailPage() {
                       <td className="px-5 py-3 text-neutral-400 text-xs">{job.location || '—'}</td>
                       <td className="px-5 py-3 text-neutral-300 text-xs">{job.salary || '—'}</td>
                       <td className="px-5 py-3 text-neutral-400 text-xs">
-                        {job.postedAt ? new Date(job.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
+                        {job.postedAt 
+                          ? (isNaN(new Date(job.postedAt).getTime()) 
+                              ? String(job.postedAt) 
+                              : new Date(job.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) 
+                          : '—'}
                       </td>
                       <td className="px-5 py-3 text-neutral-400 text-xs">{job.employmentType || '—'}</td>
                       <td className="px-5 py-3">
