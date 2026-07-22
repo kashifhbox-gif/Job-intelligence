@@ -21,8 +21,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing actorRunId in webhook payload' }, { status: 400 });
     }
 
+    const eventType = payload.eventType;
+
     // Fetch campaign to know the source
     const { campaign } = await CampaignJobService.getCampaignDetails(campaignId);
+
+    // Handle failed runs
+    if (['ACTOR.RUN.FAILED', 'ACTOR.RUN.ABORTED', 'ACTOR.RUN.TIMED_OUT'].includes(eventType)) {
+      await CampaignJobService.updateCampaign(campaignId, {
+        status: 'FAILED',
+        apifyRunId: runId,
+      });
+      return NextResponse.json({ success: true, message: `Handled failed event: ${eventType}` });
+    }
 
     // Fetch Apify token
     const adminConfig = await SettingsService.getAdminConfig();

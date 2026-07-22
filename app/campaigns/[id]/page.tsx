@@ -171,6 +171,7 @@ export default function CampaignDetailPage() {
                     <th className="px-5 py-3">Job</th>
                     <th className="px-5 py-3">Location</th>
                     <th className="px-5 py-3">Salary</th>
+                    <th className="px-5 py-3">Posted</th>
                     <th className="px-5 py-3">Type</th>
                     <th className="px-5 py-3">Score</th>
                     <th className="px-5 py-3 text-right">Actions</th>
@@ -189,6 +190,9 @@ export default function CampaignDetailPage() {
                       </td>
                       <td className="px-5 py-3 text-neutral-400 text-xs">{job.location || '—'}</td>
                       <td className="px-5 py-3 text-neutral-300 text-xs">{job.salary || '—'}</td>
+                      <td className="px-5 py-3 text-neutral-400 text-xs">
+                        {job.postedAt ? new Date(job.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
+                      </td>
                       <td className="px-5 py-3 text-neutral-400 text-xs">{job.employmentType || '—'}</td>
                       <td className="px-5 py-3">
                         {job.score !== undefined ? (

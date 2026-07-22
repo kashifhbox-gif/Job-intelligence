@@ -11,7 +11,15 @@ export class ApifyJobsService {
   private buildWebhookOption(webhookUrl: string) {
     if (webhookUrl && !webhookUrl.includes('localhost') && !webhookUrl.includes('127.0.0.1')) {
       return {
-        webhooks: [{ eventTypes: ['ACTOR.RUN.SUCCEEDED' as const], requestUrl: webhookUrl }],
+        webhooks: [{ 
+          eventTypes: [
+            'ACTOR.RUN.SUCCEEDED' as const,
+            'ACTOR.RUN.FAILED' as const,
+            'ACTOR.RUN.ABORTED' as const,
+            'ACTOR.RUN.TIMED_OUT' as const
+          ], 
+          requestUrl: webhookUrl 
+        }],
       };
     }
     return {};
@@ -66,10 +74,7 @@ export class ApifyJobsService {
     if (filters.jobType) input.jobType = filters.jobType.toLowerCase();
     if (filters.experienceLevel) input.experienceLevel = filters.experienceLevel;
     if (filters.budgetMin || filters.budgetMax) {
-      input.budget = {
-        min: filters.budgetMin,
-        max: filters.budgetMax,
-      };
+      input.budget = `${filters.budgetMin || 0}-${filters.budgetMax || ''}`;
     }
     if (filters.hourlyMin || filters.hourlyMax) {
       input.hourlyRate = `${filters.hourlyMin || 0}-${filters.hourlyMax || ''}`;

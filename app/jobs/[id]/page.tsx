@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Briefcase, CheckCircle2, ExternalLink, Loader2, MapPin, Star, XCircle } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle2, Clock, ExternalLink, Loader2, MapPin, Star, XCircle } from 'lucide-react';
 
 const SCORE_COLOR = (s: number) =>
   s >= 9 ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10'
@@ -55,6 +55,12 @@ export default function JobDetailPage() {
           {job.company && <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{job.company}</span>}
           {job.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.location}</span>}
           {job.salary && <span className="text-emerald-400 font-medium">{job.salary}</span>}
+          {job.postedAt && (
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              {new Date(job.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          )}
           {job.employmentType && <span>{job.employmentType}</span>}
         </div>
       </div>
