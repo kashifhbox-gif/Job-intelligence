@@ -8,46 +8,71 @@ export const evaluateJobs = inngest.createFunction(
   async ({ event, step, logger }) => {
     const { campaignId } = event.data;
 
-    logger.info({ campaignId }, 'Starting evaluateJobs function');
+    logger.info({ campaignId }, 'Starting evaluateJobs function batch');
 
-    // 1. Fetch unevaluated jobs
-    const jobsToEvaluate = await step.run('fetch-jobs', async () => {
+    // 1. Fetch next batch of unevaluated jobs (max 20 per execution step to stay well under Vercel timeout limits)
+    const { batch, totalUnevaluated } = await step.run('fetch-unevaluated-batch', async () => {
       await CampaignJobService.updateCampaign(campaignId, { status: 'EVALUATING' });
       const jobs = await JobListingService.getUnevaluatedJobs(campaignId);
-      logger.info({ count: jobs.length }, 'Found unevaluated jobs');
-      return JSON.parse(JSON.stringify(jobs));
+      const batch = jobs.slice(0, 20);
+      return {
+        batch: JSON.parse(JSON.stringify(batch)),
+        totalUnevaluated: jobs.length,
+      };
     });
 
-    if (!jobsToEvaluate || jobsToEvaluate.length === 0) {
-      logger.info('No jobs to evaluate');
-      await CampaignJobService.updateCampaign(campaignId, { status: 'COMPLETED' });
-      return { message: 'No jobs to evaluate' };
+    if (!batch || batch.length === 0) {
+      logger.info('All jobs evaluated. Marking campaign as COMPLETED');
+      await step.run('complete-campaign-empty', async () => {
+        const allJobs = await JobListingService.getJobsBycampaign(campaignId);
+        const qualifiedCount = allJobs.filter((j: any) => j.isQualified).length;
+        await CampaignJobService.updateCampaign(campaignId, {
+          status: 'COMPLETED',
+          qualifiedJobs: qualifiedCount,
+          totalJobs: allJobs.length,
+        });
+      });
+      return { message: 'All jobs evaluated successfully' };
     }
 
-    // 2. Evaluate each job with Gemini
-    let qualifiedCount = 0;
-    for (const job of jobsToEvaluate) {
-      const isQualified = await step.run(`evaluate-job-${job._id}`, async () => {
-        return await processJobEvaluation(job, logger);
-      });
-
-      if (isQualified) qualifiedCount++;
-
-      // Respect Gemini rate limits
-      await step.sleep(`sleep-${job._id}`, '2s');
-    }
-
-    // 3. Mark campaign as completed, update qualified count
-    await step.run('complete-campaign', async () => {
-      logger.info({ qualifiedCount }, 'Marking campaign as COMPLETED');
-      await CampaignJobService.updateCampaign(campaignId, {
-        status: 'COMPLETED',
-        qualifiedJobs: qualifiedCount,
-        totalJobs: jobsToEvaluate.length,
-      });
+    // 2. Evaluate batch of jobs concurrently in parallel chunks of 5
+    await step.run('process-batch-chunk', async () => {
+      const concurrencyLimit = 5;
+      for (let i = 0; i < batch.length; i += concurrencyLimit) {
+        const chunk = batch.slice(i, i + concurrencyLimit);
+        await Promise.all(
+          chunk.map((job: any) =>
+            processJobEvaluation(job, logger).catch((err) => {
+              logger.error({ err: err.message, jobId: job._id }, 'Job evaluation error');
+            })
+          )
+        );
+      }
     });
 
-    logger.info({ processed: jobsToEvaluate.length, qualifiedCount }, 'Evaluation job complete');
-    return { message: 'Evaluated successfully', processed: jobsToEvaluate.length, qualified: qualifiedCount };
+    const remainingCount = totalUnevaluated - batch.length;
+
+    // 3. If there are still unevaluated jobs remaining, queue the next batch event recursively
+    if (remainingCount > 0) {
+      await step.run('enqueue-next-batch', async () => {
+        logger.info({ remainingCount }, 'Enqueuing next evaluation batch event');
+        await inngest.send({
+          name: 'app/evaluate.jobs',
+          data: { campaignId },
+        });
+      });
+    } else {
+      await step.run('complete-campaign-finished', async () => {
+        const allJobs = await JobListingService.getJobsBycampaign(campaignId);
+        const qualifiedCount = allJobs.filter((j: any) => j.isQualified).length;
+        await CampaignJobService.updateCampaign(campaignId, {
+          status: 'COMPLETED',
+          qualifiedJobs: qualifiedCount,
+          totalJobs: allJobs.length,
+        });
+      });
+    }
+
+    return { processedBatch: batch.length, remaining: Math.max(0, remainingCount) };
   }
 );
