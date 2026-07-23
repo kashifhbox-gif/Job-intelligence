@@ -39,11 +39,15 @@ async function ensureAdminSeeded() {
     } else {
       let updated = false;
       if (user.role !== 'admin') { user.role = 'admin'; updated = true; }
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      
+      const isPasswordValid = user.password ? await bcrypt.compare(password, user.password).catch(() => false) : false;
       if (!isPasswordValid) {
         user.password = await bcrypt.hash(password, 10);
         updated = true;
       }
+      if (!user.aiPrompt) { user.aiPrompt = DEFAULT_QUALIFICATION_CRITERIA; updated = true; }
+      if (!user.geminiModel) { user.geminiModel = 'gemini-3.5-flash-lite'; updated = true; }
+
       if (updated) await user.save();
     }
     isSeederExecuted = true;

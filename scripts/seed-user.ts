@@ -19,12 +19,18 @@ async function seedUser() {
     if (user) {
       console.log(`ℹ️ User ${email} already exists.`);
       let updated = false;
+
+      const isPasswordValid = user.password ? await bcrypt.compare(password, user.password).catch(() => false) : false;
+      if (!isPasswordValid) {
+        user.password = await bcrypt.hash(password, 10);
+        updated = true;
+      }
       if (!user.aiPrompt) {
         user.aiPrompt = DEFAULT_QUALIFICATION_CRITERIA;
         updated = true;
       }
-      if (user.geminiModel !== 'gemini-2.5-flash') {
-        user.geminiModel = 'gemini-2.5-flash';
+      if (!user.geminiModel) {
+        user.geminiModel = 'gemini-3.5-flash-lite';
         updated = true;
       }
       if (user.role !== 'admin') {
@@ -33,7 +39,7 @@ async function seedUser() {
       }
       if (updated) {
         await user.save();
-        console.log(`✅ Admin user verified & updated (role, default criteria, model).`);
+        console.log(`✅ Admin user verified & updated (password, role, default criteria, model).`);
       }
     } else {
       const hashedPassword = await bcrypt.hash(password, 10);
