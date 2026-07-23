@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Briefcase, CheckCircle2, Clock, ExternalLink, Loader2, MapPin, Star, XCircle } from 'lucide-react';
+import { ArrowLeft, Briefcase, Check, CheckCircle2, Clock, Copy, ExternalLink, Loader2, MapPin, MessageSquare, Star, XCircle } from 'lucide-react';
 
 const SCORE_COLOR = (s: number) =>
   s >= 9 ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10'
@@ -22,6 +22,7 @@ export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetch(`/api/jobs/${id}`).then(r => r.json()).then(d => { setJob(d.job); setLoading(false); });
@@ -67,7 +68,7 @@ export default function JobDetailPage() {
         </div>
       </div>
 
-      {/* AI Score + Reasoning */}
+      {/* AI Score + Reasoning Box */}
       {job.score !== undefined && (
         <div className={`border rounded-2xl p-5 mb-6 ${SCORE_COLOR(job.score)}`}>
           <div className="flex items-center justify-between mb-3">
@@ -77,13 +78,33 @@ export default function JobDetailPage() {
               <span className="text-sm opacity-70">AI Score</span>
             </div>
           </div>
-          {job.aiReasoning && <p className="text-sm opacity-80 mb-3">{job.aiReasoning}</p>}
-          {job.outreachHook && (
-            <div className="bg-black/20 rounded-lg p-3 text-xs opacity-80">
-              <p className="font-semibold mb-1">💬 Outreach Hook</p>
-              <p className="italic">"{job.outreachHook}"</p>
+          {job.aiReasoning && <p className="text-sm opacity-80">{job.aiReasoning}</p>}
+        </div>
+      )}
+
+      {/* Separate Outreach Hook Box */}
+      {job.outreachHook && (
+        <div className="bg-gradient-to-r from-sky-500/10 via-indigo-500/10 to-purple-500/10 border border-sky-500/20 rounded-2xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-sky-400 font-semibold text-sm">
+              <MessageSquare className="w-4.5 h-4.5 text-sky-400" />
+              <span>Outreach Hook</span>
             </div>
-          )}
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(job.outreachHook);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 rounded-lg text-xs font-medium transition-colors"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? 'Copied!' : 'Copy Hook'}
+            </button>
+          </div>
+          <div className="bg-black/40 border border-white/[0.06] rounded-xl p-4 text-sm text-neutral-200 leading-relaxed italic">
+            "{job.outreachHook}"
+          </div>
         </div>
       )}
 

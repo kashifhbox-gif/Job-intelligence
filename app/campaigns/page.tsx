@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Briefcase, CheckCircle2, Loader2, Plus, Trash2 } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -14,14 +14,24 @@ const SOURCE_CONFIG: Record<string, { label: string; color: string; bg: string; 
   linkedin:   { label: 'LinkedIn Jobs', color: 'text-sky-400',    bg: 'bg-sky-500/10 border border-sky-500/20',       dot: 'bg-sky-500' },
 };
 
-export default function CampaignsPage() {
+function CampaignsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const paramSource = searchParams.get('source') || 'all';
+
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState('all');
+  const [source, setSource] = useState(paramSource);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const s = searchParams.get('source');
+    if (s && s !== source) {
+      setSource(s);
+    }
+  }, [searchParams]);
 
   const fetchCampaigns = async () => {
     try {
@@ -39,6 +49,15 @@ export default function CampaignsPage() {
   useEffect(() => { setPage(1); }, [source]);
   useEffect(() => { fetchCampaigns(); const t = setInterval(fetchCampaigns, 6000); return () => clearInterval(t); }, [page, source]);
 
+  const handleSourceChange = (s: string) => {
+    setSource(s);
+    if (s === 'all') {
+      router.replace('/campaigns', { scroll: false });
+    } else {
+      router.replace(`/campaigns?source=${s}`, { scroll: false });
+    }
+  };
+
   const statusColor = (s: string) => {
     if (s === 'COMPLETED') return 'text-emerald-400';
     if (s === 'FAILED') return 'text-red-400';
@@ -46,6 +65,8 @@ export default function CampaignsPage() {
     if (s === 'SCRAPING') return 'text-blue-400';
     return 'text-neutral-400';
   };
+
+  const newCampaignUrl = source && source !== 'all' ? `/campaigns/new?source=${source}` : '/campaigns/new';
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -55,7 +76,7 @@ export default function CampaignsPage() {
           <p className="text-sm text-neutral-500 mt-1">All job scraping campaigns across all sources</p>
         </div>
         <Link
-          href="/campaigns/new"
+          href={newCampaignUrl}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -68,7 +89,7 @@ export default function CampaignsPage() {
         {['all', 'dice', 'upwork', 'freelancer', 'linkedin'].map(s => (
           <button
             key={s}
-            onClick={() => setSource(s)}
+            onClick={() => handleSourceChange(s)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
               source === s
                 ? 'bg-white/10 border-white/20 text-white'
@@ -86,7 +107,7 @@ export default function CampaignsPage() {
         <div className="text-center py-20 bg-white/[0.02] border border-white/[0.06] rounded-2xl">
           <Briefcase className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
           <p className="text-neutral-400 font-medium">No campaigns yet</p>
-          <Link href="/campaigns/new" className="mt-3 text-indigo-400 text-sm hover:underline block">Create your first campaign →</Link>
+          <Link href={newCampaignUrl} className="mt-3 text-indigo-400 text-sm hover:underline block">Create your first campaign →</Link>
         </div>
       ) : (
         <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
@@ -173,5 +194,13 @@ export default function CampaignsPage() {
         onCancel={() => setDeleteId(null)}
       />
     </div>
+  );
+}
+
+export default function CampaignsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>}>
+      <CampaignsContent />
+    </Suspense>
   );
 }

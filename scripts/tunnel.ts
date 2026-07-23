@@ -6,7 +6,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 
 async function startTunnel() {
-  const port = process.env.PORT || '3001';
+  const port = process.env.PORT || '3000';
   console.log(`🌐 Launching ngrok tunnel on port ${port}...`);
 
   // Start ngrok in background

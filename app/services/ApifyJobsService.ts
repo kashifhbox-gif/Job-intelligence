@@ -146,4 +146,11 @@ export class ApifyJobsService {
   async getDatasetItems(runId: string) {
     return await this.client.run(runId).dataset().listItems();
   }
+
+  /**
+   * Fetch run details (including status) from Apify
+   */
+  async getRun(runId: string) {
+    return await this.client.run(runId).get();
+  }
 }

@@ -7,9 +7,9 @@ import JobListing from '../app/models/JobListing';
 import User from '../app/models/User';
 
 async function testDatabase() {
-  console.log('🔌 Testing MongoDB Atlas connection to database: job_intelligence...');
   try {
     const conn = await connectToDatabase();
+    console.log(`🔌 Testing MongoDB Atlas connection to database: ${conn.connection.name}...`);
     console.log('✅ Connected successfully to MongoDB!');
     console.log(`   Host: ${conn.connection.host}`);
     console.log(`   Database Name: ${conn.connection.name}`);

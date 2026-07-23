@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import DiceForm from '@/components/campaigns/DiceForm';
@@ -18,9 +18,21 @@ const SOURCES: { id: Source; label: string; color: string; activeClass: string }
   { id: 'linkedin',   label: 'LinkedIn Jobs', color: 'text-sky-400',    activeClass: 'border-sky-500 bg-sky-500/10' },
 ];
 
-export default function NewCampaignPage() {
+function NewCampaignContent() {
   const router = useRouter();
-  const [source, setSource] = useState<Source>('dice');
+  const searchParams = useSearchParams();
+  const paramSource = searchParams.get('source') as Source | null;
+  const initialSource: Source = paramSource && ['dice', 'upwork', 'freelancer', 'linkedin'].includes(paramSource) ? paramSource : 'dice';
+
+  const [source, setSource] = useState<Source>(initialSource);
+
+  useEffect(() => {
+    const s = searchParams.get('source') as Source | null;
+    if (s && ['dice', 'upwork', 'freelancer', 'linkedin'].includes(s)) {
+      setSource(s);
+    }
+  }, [searchParams]);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -162,9 +174,11 @@ export default function NewCampaignPage() {
   const inputClass = "w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-indigo-500 transition-colors";
   const labelClass = "block text-xs text-neutral-400 mb-1";
 
+  const backUrl = source ? `/campaigns?source=${source}` : '/campaigns';
+
   return (
     <div className="p-8 max-w-2xl mx-auto">
-      <Link href="/campaigns" className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-sm mb-6">
+      <Link href={backUrl} className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-sm mb-6">
         <ArrowLeft className="w-4 h-4" /> Back to Campaigns
       </Link>
 
@@ -290,7 +304,7 @@ export default function NewCampaignPage() {
 
         <div className="flex gap-3 pt-2">
           <Link
-            href="/campaigns"
+            href={backUrl}
             className="flex-1 py-2.5 border border-white/10 rounded-xl text-sm text-neutral-400 hover:text-white hover:bg-white/5 text-center transition-colors"
           >
             Cancel
@@ -311,5 +325,13 @@ export default function NewCampaignPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewCampaignPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>}>
+      <NewCampaignContent />
+    </Suspense>
   );
 }

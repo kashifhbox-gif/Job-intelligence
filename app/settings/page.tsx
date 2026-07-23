@@ -3,9 +3,13 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
 
+import { DEFAULT_QUALIFICATION_CRITERIA } from '@/app/services/AiJobService';
+
 const GEMINI_MODELS = [
   'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
   'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
   'gemini-1.5-flash',
   'gemini-1.5-pro',
 ];
@@ -16,15 +20,15 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState(false);
   const [apifyApiKey, setApifyApiKey] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [geminiModel, setGeminiModel] = useState('gemini-2.5-flash');
+  const [geminiModel, setGeminiModel] = useState('gemini-3.5-flash-lite');
   const [aiPrompt, setAiPrompt] = useState('');
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => {
       setApifyApiKey(d.apifyApiKey || '');
       setGeminiApiKey(d.geminiApiKey || '');
-      setGeminiModel(d.geminiModel || 'gemini-2.0-flash-lite');
-      setAiPrompt(d.aiPrompt || '');
+      setGeminiModel(d.geminiModel || 'gemini-3.5-flash-lite');
+      setAiPrompt(d.aiPrompt || DEFAULT_QUALIFICATION_CRITERIA);
       setLoading(false);
     });
   }, []);
@@ -42,6 +46,10 @@ export default function SettingsPage() {
     setTimeout(() => setSuccess(false), 3000);
   };
 
+  const resetCriteria = () => {
+    setAiPrompt(DEFAULT_QUALIFICATION_CRITERIA);
+  };
+
   const inputClass = "w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-indigo-500 transition-colors font-mono";
   const labelClass = "block text-sm font-medium text-neutral-300 mb-1.5";
   const selectClass = "w-full px-3 py-2 bg-[#111] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500";
@@ -50,7 +58,7 @@ export default function SettingsPage() {
     <div className="p-8 max-w-2xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-neutral-500 mt-1">Configure API keys and AI behavior</p>
+        <p className="text-sm text-neutral-500 mt-1">Configure API keys and AI lead qualification criteria</p>
       </div>
 
       {loading ? (
@@ -72,9 +80,9 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* AI Model */}
+          {/* AI Model & Qualification Criteria */}
           <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 space-y-5">
-            <h2 className="font-semibold text-white text-sm uppercase tracking-wide text-neutral-400">AI Model</h2>
+            <h2 className="font-semibold text-white text-sm uppercase tracking-wide text-neutral-400">AI Model & Lead Qualification</h2>
             <div>
               <label className={labelClass}>Gemini Model</label>
               <select className={selectClass} value={geminiModel} onChange={e => setGeminiModel(e.target.value)}>
@@ -83,14 +91,23 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Custom AI Prompt (optional)</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium text-neutral-300">Lead Qualification Criteria</label>
+                <button
+                  type="button"
+                  onClick={resetCriteria}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  Reset to Default Criteria
+                </button>
+              </div>
               <textarea
-                className={`${inputClass} h-48 resize-none`}
+                className={`${inputClass} h-52 resize-none leading-relaxed font-sans text-sm`}
                 value={aiPrompt}
                 onChange={e => setAiPrompt(e.target.value)}
-                placeholder="Leave empty to use the default job scoring prompt. Your prompt should instruct the AI to return JSON: { score, reasoning, outreachHook, keySkills }"
+                placeholder="Specify your lead qualification rules (target tech stack, client requirements, rate expectations, red flags)..."
               />
-              <p className="text-xs text-neutral-600 mt-1">Override the default AI scoring criteria. Applied to all campaigns.</p>
+              <p className="text-xs text-neutral-600 mt-1">Define what makes a job posting a qualified lead for your business. Applied across all campaign evaluations.</p>
             </div>
           </div>
 

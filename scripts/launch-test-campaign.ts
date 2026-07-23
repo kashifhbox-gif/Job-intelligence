@@ -32,7 +32,7 @@ async function launchLiveCampaign() {
   const campaignId = campaign._id.toString();
   console.log(`✅ Campaign created in MongoDB! ID: ${campaignId}`);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const webhookUrl = `${appUrl}/api/webhooks/apify-jobs?campaignId=${campaignId}`;
 
   const apifyService = new ApifyJobsService(apifyToken);
@@ -53,7 +53,7 @@ async function launchLiveCampaign() {
     });
 
     console.log(`\n🎉 Campaign is now active and SCRAPING!`);
-    console.log(`   View status at: http://localhost:3001/campaigns/${campaignId}`);
+    console.log(`   View status at: http://localhost:3000/campaigns/${campaignId}`);
   } catch (error: any) {
     console.error('❌ Failed to launch Apify actor:', error.message);
     await Campaign.findByIdAndUpdate(campaignId, { status: 'FAILED' });

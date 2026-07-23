@@ -3,14 +3,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2, Search, Star, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2, RefreshCw, Search, Star, Trash2 } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
 
 const SOURCE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  dice:       { label: 'Dice',          color: 'text-orange-400', bg: 'bg-orange-500/10 border border-orange-500/20' },
-  upwork:     { label: 'Upwork',        color: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20' },
-  freelancer: { label: 'Freelancer',    color: 'text-blue-400',   bg: 'bg-blue-500/10 border border-blue-500/20' },
-  linkedin:   { label: 'LinkedIn Jobs', color: 'text-sky-400',    bg: 'bg-sky-500/10 border border-sky-500/20' },
+  dice: { label: 'Dice', color: 'text-orange-400', bg: 'bg-orange-500/10 border border-orange-500/20' },
+  upwork: { label: 'Upwork', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20' },
+  freelancer: { label: 'Freelancer', color: 'text-blue-400', bg: 'bg-blue-500/10 border border-blue-500/20' },
+  linkedin: { label: 'LinkedIn Jobs', color: 'text-sky-400', bg: 'bg-sky-500/10 border border-sky-500/20' },
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -28,6 +28,7 @@ export default function CampaignDetailPage() {
   const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState<Filter>('ALL');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -58,13 +59,29 @@ export default function CampaignDetailPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Auto-poll when active
+  // Auto-poll & auto-sync when active
   useEffect(() => {
     if (!data?.campaign?.status) return;
     if (['COMPLETED', 'FAILED'].includes(data.campaign.status)) return;
-    const t = setInterval(fetchData, 5000);
+
+    const intervalCall = async () => {
+      // Only request when the user is actively viewing this tab
+      if (document.visibilityState !== 'visible') return;
+
+      if (data.campaign.status === 'SCRAPING') {
+        try {
+          await fetch(`/api/campaigns/${id}/sync`, { method: 'POST' });
+        } catch (e) {
+          // ignore
+        }
+      }
+      fetchData();
+    };
+
+    // 5 minutes is efficient and acts purely as a fallback while webhooks process normally
+    const t = setInterval(intervalCall, 300000);
     return () => clearInterval(t);
-  }, [data?.campaign?.status, fetchData]);
+  }, [data?.campaign?.status, fetchData, id]);
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>;
   if (!data) return <div className="p-8 text-red-400">Campaign not found</div>;
@@ -191,10 +208,10 @@ export default function CampaignDetailPage() {
                       <td className="px-5 py-3 text-neutral-400 text-xs">{job.location || '—'}</td>
                       <td className="px-5 py-3 text-neutral-300 text-xs">{job.salary || '—'}</td>
                       <td className="px-5 py-3 text-neutral-400 text-xs">
-                        {job.postedAt 
-                          ? (isNaN(new Date(job.postedAt).getTime()) 
-                              ? String(job.postedAt) 
-                              : new Date(job.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) 
+                        {job.postedAt
+                          ? (isNaN(new Date(job.postedAt).getTime())
+                            ? String(job.postedAt)
+                            : new Date(job.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))
                           : '—'}
                       </td>
                       <td className="px-5 py-3 text-neutral-400 text-xs">{job.employmentType || '—'}</td>

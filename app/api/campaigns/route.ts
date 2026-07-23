@@ -30,8 +30,8 @@ export async function POST(req: Request) {
     const campaign = await CampaignJobService.createCampaign({ name, source, keyword, filters });
     const campaignId = campaign._id.toString();
 
-    // Build webhook URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+    // Build webhook URL directly from env
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sacrifice-palm-compost.ngrok-free.dev';
     const webhookUrl = `${appUrl}/api/webhooks/apify-jobs?campaignId=${campaignId}`;
 
     // Fetch Apify token

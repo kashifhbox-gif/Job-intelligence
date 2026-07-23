@@ -52,6 +52,14 @@ export async function processJobEvaluation(job: any, logger: any): Promise<boole
     return isQualified;
   } catch (error: any) {
     logger.error({ err: error.message, jobId: job._id }, 'Failed to evaluate job');
+    
+    // Save the exact error message to the database so it shows in the UI
+    await JobListingService.updateJob(job._id, {
+      score: 0,
+      aiReasoning: `API Error: ${error.message}`,
+      isQualified: false,
+    });
+    
     return false;
   }
 }

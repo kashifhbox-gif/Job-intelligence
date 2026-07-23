@@ -39,7 +39,7 @@ async function evaluateLiveCampaignJobs() {
   console.log(`🎉 LIVE CAMPAIGN EVALUATION COMPLETED!`);
   console.log(`   - Total Scraped Jobs: ${jobs.length}`);
   console.log(`   - Qualified Jobs (Score >= 7): ${qualified}`);
-  console.log(`   - View live dashboard at: http://localhost:3001/campaigns/${campaignId}`);
+  console.log(`   - View live dashboard at: http://localhost:3000/campaigns/${campaignId}`);
   console.log(`==================================================`);
 
   process.exit(0);
