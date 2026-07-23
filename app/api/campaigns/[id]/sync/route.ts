@@ -4,6 +4,7 @@ import { SettingsService } from '@/app/services/SettingsService';
 import { ApifyJobsService } from '@/app/services/ApifyJobsService';
 import { JobListingService } from '@/app/services/JobListingService';
 import { inngest } from '@/app/lib/inngest';
+import { processJobEvaluation } from '@/app/inngest/evaluationHelpers';
 
 export async function POST(
   req: Request,
@@ -35,7 +36,7 @@ export async function POST(
 
     const apifyStatus = run.status;
 
-    // If still running or queueing, just return status and don't load dataset items
+    // If still running or queueing, return status
     if (['RUNNING', 'READY', 'STARTING'].includes(apifyStatus)) {
       return NextResponse.json({ success: true, apifyStatus, status: campaign.status });
     }
@@ -48,7 +49,7 @@ export async function POST(
       return NextResponse.json({ success: true, apifyStatus, status: 'FAILED' });
     }
 
-    // Only fetch dataset and import when run has succeeded
+    // Fetch dataset items
     const dataset = await apifyService.getDatasetItems(campaign.apifyRunId);
     const items = dataset.items || [];
 
@@ -60,12 +61,38 @@ export async function POST(
         totalJobs: saved,
       });
 
-      await inngest.send({
-        name: 'app/evaluate.jobs',
-        data: { campaignId: id },
-      });
+      try {
+        await inngest.send({
+          name: 'app/evaluate.jobs',
+          data: { campaignId: id },
+        });
+      } catch (e) {
+        console.warn('Inngest send warning:', e);
+      }
+    }
 
-      return NextResponse.json({ success: true, saved, status: 'SCRAPED' });
+    // Auto-evaluate unevaluated jobs in inline batch
+    const unevaluated = await JobListingService.getUnevaluatedJobs(id);
+    if (unevaluated.length > 0) {
+      await CampaignJobService.updateCampaign(id, { status: 'EVALUATING' });
+      const logger = {
+        info: (obj: any, msg?: string) => console.log('🤖 Sync AI Eval:', msg || obj),
+        error: (obj: any, msg?: string) => console.error('❌ Sync AI Eval Error:', msg || obj),
+      };
+
+      const batch = unevaluated.slice(0, 10);
+      for (const job of batch) {
+        try {
+          await processJobEvaluation(job, logger);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      const remaining = unevaluated.length - batch.length;
+      const nextStatus = remaining <= 0 ? 'EVALUATED' : 'EVALUATING';
+      await CampaignJobService.updateCampaign(id, { status: nextStatus });
+      return NextResponse.json({ success: true, apifyStatus, status: nextStatus, evaluatedBatch: batch.length, remaining });
     }
 
     return NextResponse.json({ success: true, itemsCount: items.length, status: campaign.status });

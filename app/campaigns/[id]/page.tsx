@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2, RefreshCw, Search, Star, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2, RefreshCw, Search, Sparkles, Star, Trash2 } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
 
 const SOURCE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -35,6 +35,7 @@ export default function CampaignDetailPage() {
   const [page, setPage] = useState(1);
   const [deleteCampaign, setDeleteCampaign] = useState(false);
   const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -62,13 +63,12 @@ export default function CampaignDetailPage() {
   // Auto-poll & auto-sync when active
   useEffect(() => {
     if (!data?.campaign?.status) return;
-    if (['COMPLETED', 'FAILED'].includes(data.campaign.status)) return;
+    if (['COMPLETED', 'FAILED', 'EVALUATED'].includes(data.campaign.status) && (data.stats?.evaluatedJobs || 0) >= (data.stats?.totalJobs || 0)) return;
 
     const intervalCall = async () => {
-      // Only request when the user is actively viewing this tab
       if (document.visibilityState !== 'visible') return;
 
-      if (data.campaign.status === 'SCRAPING') {
+      if (['SCRAPING', 'SCRAPED', 'EVALUATING'].includes(data.campaign.status) || (data.stats?.evaluatedJobs || 0) < (data.stats?.totalJobs || 0)) {
         try {
           await fetch(`/api/campaigns/${id}/sync`, { method: 'POST' });
         } catch (e) {
@@ -78,10 +78,10 @@ export default function CampaignDetailPage() {
       fetchData();
     };
 
-    // 5 minutes is efficient and acts purely as a fallback while webhooks process normally
-    const t = setInterval(intervalCall, 300000);
+    const pollInterval = ['EVALUATING', 'SCRAPED', 'SCRAPING'].includes(data.campaign.status) ? 4000 : 15000;
+    const t = setInterval(intervalCall, pollInterval);
     return () => clearInterval(t);
-  }, [data?.campaign?.status, fetchData, id]);
+  }, [data?.campaign?.status, data?.stats?.evaluatedJobs, data?.stats?.totalJobs, fetchData, id]);
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>;
   if (!data) return <div className="p-8 text-red-400">Campaign not found</div>;
@@ -91,8 +91,20 @@ export default function CampaignDetailPage() {
   const isProcessing = ['SCRAPING', 'EVALUATING'].includes(campaign.status);
   const evalProgress = stats.globalTotalJobs > 0 ? Math.round((stats.evaluatedJobs / stats.globalTotalJobs) * 100) : 0;
 
+  const handleEvaluate = async () => {
+    setEvaluating(true);
+    try {
+      await fetch(`/api/campaigns/${id}/evaluate`, { method: 'POST' });
+      await fetchData();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEvaluating(false);
+    }
+  };
+
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
       <Link href="/campaigns" className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-sm mb-6">
         <ArrowLeft className="w-4 h-4" /> Campaigns
@@ -111,6 +123,23 @@ export default function CampaignDetailPage() {
           <p className="text-sm text-neutral-500 mt-0.5 truncate max-w-lg">{campaign.keyword}</p>
         </div>
         <div className="flex items-center gap-2">
+          {stats.evaluatedJobs < stats.globalTotalJobs && (
+            <button
+              onClick={handleEvaluate}
+              disabled={evaluating}
+              className="flex items-center gap-2 px-3.5 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors shadow-md shadow-violet-600/30"
+            >
+              {evaluating ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Evaluating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" /> Evaluate AI Scoring
+                </>
+              )}
+            </button>
+          )}
           <a
             href={`/api/export?campaignId=${id}`}
             className="flex items-center gap-2 px-3 py-2 border border-white/10 rounded-xl text-sm text-neutral-300 hover:bg-white/5 transition-colors"

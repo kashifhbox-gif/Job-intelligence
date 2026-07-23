@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Briefcase, CheckCircle2, Loader2, Plus, TrendingUp, Zap, ArrowRight, Activity, Layers } from 'lucide-react';
+import { Briefcase, CheckCircle2, Loader2, Plus, TrendingUp, Zap, ArrowRight, Activity, Layers, Sparkles } from 'lucide-react';
 
 const SOURCE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
   dice:       { label: 'Dice',          color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', dot: 'bg-orange-500' },
@@ -30,6 +30,7 @@ export default function DashboardPage() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
 
   const fetchDashboard = async () => {
     try {
@@ -48,6 +49,18 @@ export default function DashboardPage() {
     const interval = setInterval(fetchDashboard, 6000);
     return () => clearInterval(interval);
   }, []);
+
+  const evaluateCampaign = async (id: string) => {
+    setEvaluatingId(id);
+    try {
+      await fetch(`/api/campaigns/${id}/evaluate`, { method: 'POST' });
+      await fetchDashboard();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEvaluatingId(null);
+    }
+  };
 
   const qualifiedRate = stats.totalJobs > 0
     ? Math.round((stats.qualifiedJobs / stats.totalJobs) * 100)
@@ -138,18 +151,39 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-sm font-bold text-white">{total} Jobs Scraped</p>
                       <p className="text-xs text-emerald-400 font-medium mt-0.5">{stats.lastCampaign.stats?.qualifiedJobs || 0} Qualified Leads</p>
                     </div>
-                    <Link
-                      href={`/campaigns/${stats.lastCampaign._id}`}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-colors shadow-md shadow-indigo-600/30"
-                    >
-                      <span>View Campaign</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      {evaluated < total && (
+                        <button
+                          onClick={() => evaluateCampaign(stats.lastCampaign._id)}
+                          disabled={evaluatingId === stats.lastCampaign._id}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors shadow-md shadow-violet-600/30"
+                        >
+                          {evaluatingId === stats.lastCampaign._id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Evaluating...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Evaluate AI</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                      <Link
+                        href={`/campaigns/${stats.lastCampaign._id}`}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-colors shadow-md shadow-indigo-600/30"
+                      >
+                        <span>View Campaign</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
 
