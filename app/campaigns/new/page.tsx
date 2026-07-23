@@ -8,6 +8,7 @@ import DiceForm from '@/components/campaigns/DiceForm';
 import UpworkForm from '@/components/campaigns/UpworkForm';
 import FreelancerForm from '@/components/campaigns/FreelancerForm';
 import LinkedInForm from '@/components/campaigns/LinkedInForm';
+import CostEstimationCard from '@/components/campaigns/CostEstimationCard';
 
 type Source = 'dice' | 'upwork' | 'freelancer' | 'linkedin';
 
@@ -75,9 +76,16 @@ function NewCampaignContent() {
   const [liScrapeCompany, setLiScrapeCompany] = useState(false);
   const [liSplitByLocation, setLiSplitByLocation] = useState(false);
 
+  const handleNameChange = (val: string) => {
+    setName(val);
+    setKeyword(val);
+    setLiKeyword(val);
+  };
+
   const constructLinkedInUrl = () => {
     const params = new URLSearchParams();
-    if (liKeyword.trim()) params.append('keywords', liKeyword.trim());
+    const effectiveKw = liKeyword.trim() || name.trim();
+    if (effectiveKw) params.append('keywords', effectiveKw);
     if (liLocation.trim()) params.append('location', liLocation.trim());
 
     if (liLocation.trim().toLowerCase().includes('united states') || liLocation.trim().toLowerCase() === 'us') {
@@ -102,20 +110,21 @@ function NewCampaignContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!name.trim()) { setError('Campaign name is required'); return; }
-    if (source !== 'linkedin' && !keyword.trim()) { setError('Keyword is required'); return; }
+    const effectiveKw = (source === 'linkedin' ? (liKeyword.trim() || name.trim()) : (keyword.trim() || name.trim()));
+    if (!name.trim()) { setError('Campaign Name / Search Query is required'); return; }
+    if (source !== 'linkedin' && !effectiveKw) { setError('Search query is required'); return; }
 
     let finalLiUrl = '';
-    let finalKw = keyword;
+    let finalKw = effectiveKw;
 
     if (source === 'linkedin') {
       if (liMode === 'builder') {
-        if (!liKeyword.trim() && !liCompanyIds.trim()) {
-          setError('Please enter a job title/keyword or company ID for LinkedIn');
+        if (!effectiveKw && !liCompanyIds.trim()) {
+          setError('Please enter a campaign name/search query or company ID for LinkedIn');
           return;
         }
         finalLiUrl = constructLinkedInUrl();
-        finalKw = liKeyword.trim() ? `${liKeyword.trim()} (${liLocation})` : `LinkedIn Jobs (${liLocation})`;
+        finalKw = effectiveKw ? `${effectiveKw} (${liLocation})` : `LinkedIn Jobs (${liLocation})`;
       } else {
         if (!liSearchUrl.trim()) {
           setError('LinkedIn search URL is required');
@@ -129,7 +138,7 @@ function NewCampaignContent() {
     setSubmitting(true);
     try {
       const filters: any = {};
-      const kw = source === 'linkedin' ? finalKw : keyword;
+      const kw = source === 'linkedin' ? finalKw : effectiveKw;
 
       if (source === 'dice') {
         filters.location = diceLocation;
@@ -176,6 +185,14 @@ function NewCampaignContent() {
 
   const backUrl = source ? `/campaigns?source=${source}` : '/campaigns';
 
+  const getItemCount = () => {
+    if (source === 'dice') return diceResultsWanted;
+    if (source === 'upwork') return upworkMaxResults;
+    if (source === 'freelancer') return flLimit;
+    if (source === 'linkedin') return liCount;
+    return 50;
+  };
+
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <Link href={backUrl} className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-sm mb-6">
@@ -203,15 +220,18 @@ function NewCampaignContent() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Campaign Name (Shared) */}
+        {/* Campaign Name (Shared - Auto syncs as Search Query) */}
         <div>
-          <label className={labelClass}>Campaign Name *</label>
+          <label className={labelClass}>Campaign Name / Search Query *</label>
           <input
             className={inputClass}
             value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="e.g. Remote React Jobs – July 2026"
+            onChange={e => handleNameChange(e.target.value)}
+            placeholder="e.g. React Developer, Node.js Engineer, Mobile App Developer"
           />
+          <p className="text-[11px] text-neutral-500 mt-1">
+            This name is automatically used as the search query to scrape jobs.
+          </p>
         </div>
 
         {/* Form Components */}
@@ -295,6 +315,9 @@ function NewCampaignContent() {
             constructedUrl={constructLinkedInUrl()}
           />
         )}
+
+        {/* Live Cost Estimation Card */}
+        <CostEstimationCard source={source} itemCount={getItemCount()} />
 
         {error && (
           <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">

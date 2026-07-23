@@ -122,6 +122,63 @@ export class CampaignJobService {
       Campaign.find().sort({ createdAt: -1 }).limit(5).lean(),
     ]);
 
-    return { totalCampaigns, totalJobs, qualifiedJobs, recentCampaigns };
+    const sources = ['upwork', 'freelancer', 'dice', 'linkedin'];
+    const platformStats: Record<string, { campaigns: number; jobs: number }> = {};
+
+    await Promise.all(
+      sources.map(async (src) => {
+        const camps = await Campaign.find({ source: src }, { _id: 1 }).lean();
+        const campIds = camps.map((c) => c._id);
+        const jobCount = await JobListing.countDocuments({ campaignId: { $in: campIds } });
+        platformStats[src] = {
+          campaigns: camps.length,
+          jobs: jobCount,
+        };
+      })
+    );
+
+    let lastCampaign: any = null;
+    if (recentCampaigns.length > 0) {
+      const latest = recentCampaigns[0];
+      const lTotal = await JobListing.countDocuments({ campaignId: latest._id });
+      const lQualified = await JobListing.countDocuments({ campaignId: latest._id, isQualified: true });
+      const lEvaluated = await JobListing.countDocuments({ campaignId: latest._id, score: { $exists: true } });
+      lastCampaign = {
+        ...latest,
+        stats: { totalJobs: lTotal, qualifiedJobs: lQualified, evaluatedJobs: lEvaluated },
+      };
+    }
+
+    return { totalCampaigns, totalJobs, qualifiedJobs, recentCampaigns, platformStats, lastCampaign };
+  }
+
+  static async getPlatformDashboardStats(source: string) {
+    await connectToDatabase();
+    const campaigns = await Campaign.find({ source }).sort({ createdAt: -1 }).lean();
+    const campaignIds = campaigns.map((c) => c._id);
+
+    const [totalCampaigns, totalJobs, qualifiedJobs, recentQualifiedJobs] = await Promise.all([
+      Campaign.countDocuments({ source }),
+      JobListing.countDocuments({ campaignId: { $in: campaignIds } }),
+      JobListing.countDocuments({ campaignId: { $in: campaignIds }, isQualified: true }),
+      JobListing.find({ campaignId: { $in: campaignIds }, isQualified: true }).sort({ score: -1, createdAt: -1 }).limit(6).lean(),
+    ]);
+
+    const campaignsWithStats = await Promise.all(
+      campaigns.map(async (c) => {
+        const cTotal = await JobListing.countDocuments({ campaignId: c._id });
+        const cQualified = await JobListing.countDocuments({ campaignId: c._id, isQualified: true });
+        const cEvaluated = await JobListing.countDocuments({ campaignId: c._id, score: { $exists: true } });
+        return { ...c, stats: { totalJobs: cTotal, qualifiedJobs: cQualified, evaluatedJobs: cEvaluated } };
+      })
+    );
+
+    return {
+      totalCampaigns,
+      totalJobs,
+      qualifiedJobs,
+      campaigns: campaignsWithStats,
+      recentQualifiedJobs,
+    };
   }
 }

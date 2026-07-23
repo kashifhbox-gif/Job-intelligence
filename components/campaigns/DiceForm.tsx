@@ -27,16 +27,6 @@ export default function DiceForm({
 }: DiceFormProps) {
   return (
     <div className="space-y-4">
-      <div>
-        <label className={labelClass}>Keyword *</label>
-        <input
-          className={inputClass}
-          value={keyword}
-          onChange={e => setKeyword(e.target.value)}
-          placeholder="e.g. react developer"
-        />
-      </div>
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>Location</label>
@@ -68,8 +58,8 @@ export default function DiceForm({
         <input
           type="range"
           min={10}
-          max={250}
-          step={10}
+          max={1000}
+          step={25}
           value={resultsWanted}
           onChange={e => setResultsWanted(Number(e.target.value))}
           className="w-full accent-orange-500"

@@ -43,16 +43,6 @@ export default function UpworkForm({
 }: UpworkFormProps) {
   return (
     <div className="space-y-4">
-      <div>
-        <label className={labelClass}>Search Query *</label>
-        <input
-          className={inputClass}
-          value={keyword}
-          onChange={e => setKeyword(e.target.value)}
-          placeholder="e.g. next.js developer"
-        />
-      </div>
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>Job Type</label>
@@ -132,8 +122,8 @@ export default function UpworkForm({
         <input
           type="range"
           min={10}
-          max={200}
-          step={10}
+          max={1000}
+          step={25}
           value={maxResults}
           onChange={e => setMaxResults(Number(e.target.value))}
           className="w-full accent-emerald-500"

@@ -97,25 +97,14 @@ export default function LinkedInForm({
 
       {mode === 'builder' ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Job Title / Keyword</label>
-              <input
-                className={inputClass}
-                value={keyword}
-                onChange={e => setKeyword(e.target.value)}
-                placeholder="e.g. React Developer, Software Engineer"
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Location (Default: United States)</label>
-              <input
-                className={inputClass}
-                value={location}
-                onChange={e => setLocation(e.target.value)}
-                placeholder="United States"
-              />
-            </div>
+          <div>
+            <label className={labelClass}>Location (Default: United States)</label>
+            <input
+              className={inputClass}
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              placeholder="United States"
+            />
           </div>
 
           {/* Work Type */}
@@ -263,7 +252,7 @@ export default function LinkedInForm({
         <input
           type="range"
           min={25}
-          max={500}
+          max={1000}
           step={25}
           value={count}
           onChange={e => setCount(Number(e.target.value))}

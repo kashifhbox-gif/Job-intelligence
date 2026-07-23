@@ -8,6 +8,7 @@ export interface IUser extends Document {
   geminiModel?: string;
   aiPrompt?: string;
   apolloApiKey?: string;
+  role: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +22,7 @@ const UserSchema: Schema = new Schema(
     geminiModel: { type: String, required: false, default: 'gemini-2.5-flash' },
     aiPrompt: { type: String, required: false },
     apolloApiKey: { type: String, required: false },
+    role: { type: String, enum: ['admin', 'user'], default: 'user' },
   },
   { timestamps: true }
 );

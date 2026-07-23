@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/app/lib/db';
 import User from '@/app/models/User';
 import bcrypt from 'bcryptjs';
-import { SettingsService } from '@/app/services/SettingsService';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/lib/auth';
 
@@ -12,13 +11,10 @@ export async function GET(req: Request) {
     if (!session?.user?.email || session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const settings = await SettingsService.getSettings(session.user.email);
-    return NextResponse.json({
-      apifyApiKey: settings.apifyApiKey || '',
-      geminiApiKey: settings.geminiApiKey || '',
-      geminiModel: settings.geminiModel || 'gemini-2.5-flash',
-      aiPrompt: settings.aiPrompt || '',
-    });
+
+    await connectToDatabase();
+    const users = await User.find({}, { password: 0 }).sort({ createdAt: -1 });
+    return NextResponse.json({ users });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -30,9 +26,29 @@ export async function POST(req: Request) {
     if (!session?.user?.email || session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const body = await req.json();
-    const updated = await SettingsService.updateSettings(session.user.email, body);
-    return NextResponse.json({ success: true });
+
+    const { email, password, role } = await req.json();
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    }
+
+    await connectToDatabase();
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      role: role || 'user',
+    });
+
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return NextResponse.json({ user: userObj }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -4,24 +4,36 @@ import { useEffect, useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
 
 import { DEFAULT_QUALIFICATION_CRITERIA } from '@/app/services/AiJobService';
+import ApiUsageCard from '@/components/ApiUsageCard';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 const GEMINI_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3.1-pro-preview',
+  'gemini-3-flash',
 ];
 
 export default function SettingsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [apifyApiKey, setApifyApiKey] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [geminiModel, setGeminiModel] = useState('gemini-3.5-flash-lite');
+  const [geminiModel, setGeminiModel] = useState('gemini-2.5-flash');
   const [aiPrompt, setAiPrompt] = useState('');
+
+  useEffect(() => {
+    if (status === 'unauthenticated' || (status === 'authenticated' && session?.user?.role !== 'admin')) {
+      router.push('/');
+    }
+  }, [status, session, router]);
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => {
@@ -79,6 +91,9 @@ export default function SettingsPage() {
               <p className="text-xs text-neutral-600 mt-1">Used for AI job scoring and outreach hook generation</p>
             </div>
           </div>
+
+          {/* Live API Usage Monitor */}
+          <ApiUsageCard />
 
           {/* AI Model & Qualification Criteria */}
           <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 space-y-5">

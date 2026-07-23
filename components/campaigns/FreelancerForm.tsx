@@ -49,16 +49,6 @@ export default function FreelancerForm({
   return (
     <div className="space-y-4">
       <div>
-        <label className={labelClass}>Search Query *</label>
-        <input
-          className={inputClass}
-          value={keyword}
-          onChange={e => setKeyword(e.target.value)}
-          placeholder="e.g. react node backend"
-        />
-      </div>
-
-      <div>
         <label className={labelClass}>Skills (optional)</label>
         <div className="flex gap-2 mb-2">
           <input
@@ -142,8 +132,8 @@ export default function FreelancerForm({
           <input
             type="range"
             min={10}
-            max={500}
-            step={10}
+            max={1000}
+            step={25}
             value={limit}
             onChange={e => setLimit(Number(e.target.value))}
             className="w-full mt-3 accent-blue-500"

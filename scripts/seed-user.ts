@@ -23,13 +23,17 @@ async function seedUser() {
         user.aiPrompt = DEFAULT_QUALIFICATION_CRITERIA;
         updated = true;
       }
-      if (user.geminiModel !== 'gemini-3.5-flash-lite') {
-        user.geminiModel = 'gemini-3.5-flash-lite';
+      if (user.geminiModel !== 'gemini-2.5-flash') {
+        user.geminiModel = 'gemini-2.5-flash';
+        updated = true;
+      }
+      if (user.role !== 'admin') {
+        user.role = 'admin';
         updated = true;
       }
       if (updated) {
         await user.save();
-        console.log(`✅ Default Lead Qualification Criteria and model updated to gemini-2.5-flash.`);
+        console.log(`✅ Admin user verified & updated (role, default criteria, model).`);
       }
     } else {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -40,6 +44,7 @@ async function seedUser() {
         geminiApiKey: process.env.GEMINI_API_KEY || '',
         geminiModel: 'gemini-2.5-flash',
         aiPrompt: DEFAULT_QUALIFICATION_CRITERIA,
+        role: 'admin',
       });
       console.log(`✅ Admin user created successfully!`);
     }
@@ -47,6 +52,7 @@ async function seedUser() {
     console.log(`\n🔑 Login Credentials:`);
     console.log(`   - Email: ${email}`);
     console.log(`   - Password: ${password}`);
+    console.log(`   - Role: ${user.role}`);
     console.log(`   - Apify Token: ${user.apifyApiKey ? 'Configured ✅' : 'Missing ❌'}`);
     console.log(`   - Gemini Key: ${user.geminiApiKey ? 'Configured ✅' : 'Missing ❌'}`);
     console.log(`   - Gemini Model: ${user.geminiModel}`);

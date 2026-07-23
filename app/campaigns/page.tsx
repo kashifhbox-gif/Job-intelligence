@@ -84,22 +84,7 @@ function CampaignsContent() {
         </Link>
       </div>
 
-      {/* Source filter */}
-      <div className="flex items-center gap-2 mb-6">
-        {['all', 'dice', 'upwork', 'freelancer', 'linkedin'].map(s => (
-          <button
-            key={s}
-            onClick={() => handleSourceChange(s)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
-              source === s
-                ? 'bg-white/10 border-white/20 text-white'
-                : 'border-transparent text-neutral-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {s === 'all' ? 'All Sources' : s === 'linkedin' ? 'LinkedIn Jobs' : s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-      </div>
+
 
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
