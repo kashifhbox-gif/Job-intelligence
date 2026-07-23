@@ -42,7 +42,7 @@ async function seedUser() {
         password: hashedPassword,
         apifyApiKey: process.env.APIFY_API_TOKEN || '',
         geminiApiKey: process.env.GEMINI_API_KEY || '',
-        geminiModel: 'gemini-2.5-flash',
+        geminiModel: 'gemini-3.5-flash-lite',
         aiPrompt: DEFAULT_QUALIFICATION_CRITERIA,
         role: 'admin',
       });

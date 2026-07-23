@@ -4,7 +4,7 @@ import User from '@/app/models/User';
 export class SettingsService {
   static async getAdminConfig() {
     await connectToDatabase();
-    return await User.findOne();
+    return await User.findOne({ role: 'admin' });
   }
 
   static async getSettings(email: string) {

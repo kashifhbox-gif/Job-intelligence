@@ -1,20 +1,30 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/app/lib/db';
 import User from '@/app/models/User';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/lib/auth';
 
 export async function GET() {
   try {
     await connectToDatabase();
-    const adminUser = await User.findOne({ role: 'admin' });
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email;
+
+    let adminUser = email ? await User.findOne({ email }) : null;
+    if (!adminUser) {
+      adminUser = await User.findOne({ role: 'admin' });
+    }
+
     const apifyToken = adminUser?.apifyApiKey || process.env.APIFY_API_TOKEN;
     const geminiKey = adminUser?.geminiApiKey || process.env.GEMINI_API_KEY;
+    const geminiModel = adminUser?.geminiModel || 'gemini-3.5-flash-lite';
 
     if (!apifyToken) {
       return NextResponse.json({
         apify: null,
         gemini: {
           configured: Boolean(geminiKey),
-          model: adminUser?.geminiModel || 'gemini-2.5-flash',
+          model: geminiModel,
         },
       });
     }
@@ -28,7 +38,7 @@ export async function GET() {
         apify: null,
         gemini: {
           configured: Boolean(geminiKey),
-          model: adminUser?.geminiModel || 'gemini-2.5-flash',
+          model: geminiModel,
         },
         apifyError: 'Invalid or expired Apify API Token',
       });
@@ -56,7 +66,7 @@ export async function GET() {
       },
       gemini: {
         configured: Boolean(geminiKey),
-        model: adminUser?.geminiModel || 'gemini-2.5-flash',
+        model: geminiModel,
       },
     });
   } catch (error: any) {

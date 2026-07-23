@@ -45,6 +45,8 @@ export default function SettingsPage() {
     });
   }, []);
 
+  const [usageRefreshKey, setUsageRefreshKey] = useState(0);
+
   const save = async () => {
     setSaving(true);
     setSuccess(false);
@@ -55,6 +57,7 @@ export default function SettingsPage() {
     });
     setSaving(false);
     setSuccess(true);
+    setUsageRefreshKey(prev => prev + 1);
     setTimeout(() => setSuccess(false), 3000);
   };
 
@@ -93,7 +96,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Live API Usage Monitor */}
-          <ApiUsageCard />
+          <ApiUsageCard key={usageRefreshKey} />
 
           {/* AI Model & Qualification Criteria */}
           <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 space-y-5">
