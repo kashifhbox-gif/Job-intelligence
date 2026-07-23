@@ -36,10 +36,15 @@ async function ensureAdminSeeded() {
         role: 'admin',
       });
       console.log(`👤 [Vercel Deployment] Admin user (${email}) seeded automatically!`);
-    } else if (user.role !== 'admin') {
-      user.role = 'admin';
-      await user.save();
-      console.log(`👤 [Vercel Deployment] Admin role verified for ${email}`);
+    } else {
+      let updated = false;
+      if (user.role !== 'admin') { user.role = 'admin'; updated = true; }
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        user.password = await bcrypt.hash(password, 10);
+        updated = true;
+      }
+      if (updated) await user.save();
     }
     isSeederExecuted = true;
   } catch (err: any) {
