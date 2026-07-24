@@ -4,7 +4,16 @@ import { JobListingService } from '@/app/services/JobListingService';
 import { processJobEvaluation } from './evaluationHelpers';
 
 export const evaluateJobs = inngest.createFunction(
-  { id: 'evaluate-jobs-job', triggers: [{ event: 'app/evaluate.jobs' }] },
+  {
+    id: 'evaluate-jobs-job',
+    triggers: [{ event: 'app/evaluate.jobs' }],
+    onFailure: async ({ event, step }) => {
+      const campaignId = (event as any)?.data?.event?.data?.campaignId;
+      if (campaignId) {
+        await CampaignJobService.updateCampaign(campaignId, { status: 'FAILED' });
+      }
+    },
+  },
   async ({ event, step, logger }) => {
     const { campaignId } = event.data;
 
